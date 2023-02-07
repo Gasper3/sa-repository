@@ -12,6 +12,8 @@ sqlalchemy = "^2.0.2"
 coverage = "^7.1.0"
 pytest = "*"
 black = "^23.1.0"
+factory-boy = "^3.2.1"
+psycopg2 = "^2.9.5"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
