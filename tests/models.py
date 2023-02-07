@@ -4,4 +4,3 @@ class Article:
 
 class Comment:
     pass
-

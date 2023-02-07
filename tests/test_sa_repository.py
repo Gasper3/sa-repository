@@ -1,8 +1,8 @@
 import pytest
 
 from sa_repository import __version__
-from .repositories import ArticleRepository
 from .models import Article, Comment
+from .repositories import ArticleRepository
 
 
 def test_version():

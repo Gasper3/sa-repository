@@ -1,8 +1,7 @@
 import typing as t
 
-from sqlalchemy.orm import Session
 from sqlalchemy import Select, select, ScalarResult
-
+from sqlalchemy.orm import Session
 
 __all__ = ['BaseRepository']
 
@@ -15,6 +14,7 @@ class BaseRepository(t.Generic[T]):
     Every exception is raised from sqlalchemy.exc
     Every session operations are flushed NOT committed
     """
+
     REGISTRY = {}
     MODEL_CLASS: t.Type[T]
     BATCH_SIZE = 1000
