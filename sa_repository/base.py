@@ -1,6 +1,7 @@
 import typing as t
 
 from sqlalchemy.orm import Session
+from sqlalchemy import Select, select, ScalarResult
 
 
 __all__ = ['BaseRepository']
@@ -25,3 +26,25 @@ class BaseRepository(t.Generic[T]):
 
     def __init__(self, session: Session):
         self.session = session
+
+    def _validate_type(self, instances: list):
+        if not all([isinstance(instance, self.MODEL_CLASS) for instance in instances]):
+            raise ValueError(f'Not all models are instance of class {self.__class__.__name__}')
+        return True
+
+    # read methods
+    def _simple_filter(self, *filter_args) -> Select:
+        return select(self.MODEL_CLASS).where(*filter_args)
+
+    def get(self, *filter_args) -> T:
+        """
+        :returns: one
+        :raises NoResultFound: if nothing was found
+        :raises MultipleResultsFound: if found more than one record
+        """
+        stmt = self._simple_filter(*filter_args)
+        return self.session.scalars(stmt).one()
+
+    def find(self, *filter_args) -> ScalarResult[T]:
+        stmt = self._simple_filter(*filter_args)
+        return self.session.scalars(stmt)
