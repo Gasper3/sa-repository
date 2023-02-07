@@ -6,7 +6,7 @@ All you need to do is:
 1. Install this package `python -m pip install sa-repository`
 2. Use it in your project
     ```python
-    from sq-repository import BaseRepository
+    from sa_repository import BaseRepository
     from models import YourSAModel
     
     class SomeModelRepository(BaseRepository[YourSAModel]):
