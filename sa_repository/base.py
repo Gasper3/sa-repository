@@ -29,7 +29,7 @@ class BaseRepository(t.Generic[T]):
 
     def _validate_type(self, instances: list):
         if not all([isinstance(instance, self.MODEL_CLASS) for instance in instances]):
-            raise ValueError(f'Not all models are instance of class {self.__class__.__name__}')
+            raise ValueError(f'Not all models are instance of class {self.MODEL_CLASS.__name__}')
         return True
 
     # read methods
