@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import declarative_base, relationship
 
 
@@ -14,6 +14,7 @@ class Comment(Base):
 
     content = Column(String(255))
 
+    article_id = Column(Integer(), ForeignKey("articles.id"))
     article = relationship('Article', back_populates='comments')
 
 
@@ -21,3 +22,5 @@ class Article(Base):
     __tablename__ = 'articles'
 
     title = Column(String(255))
+
+    comments = relationship('Comment', back_populates='article')
