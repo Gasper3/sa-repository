@@ -1,5 +1,5 @@
 import pytest
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from .models import Base
@@ -14,13 +14,10 @@ def create_test_db():
     connection = engine.connect()
     connection.execution_options(isolation_level="AUTOCOMMIT")
 
-    connection.execute(f'DROP DATABASE IF EXISTS sa_repository;')
-    connection.execute(f'CREATE DATABASE sa_repository;')
+    connection.execute(text('DROP DATABASE IF EXISTS sa_repository;'))
+    connection.execute(text('CREATE DATABASE sa_repository;'))
 
-    try:
-        yield
-    finally:
-        connection.execute(f'DROP DATABASE sa_repository;')
+    yield
 
 
 @pytest.fixture(scope='session')
@@ -28,9 +25,11 @@ def db_engine(create_test_db):
     engine = create_engine('postgresql://postgres:postgres@127.0.0.1:5433/sa_repository')
 
     with engine.begin() as connection:
-        connection.run_callable(Base.metadata.create_all)
+        Base.metadata.create_all(bind=connection)
 
     yield engine
+    with engine.begin() as connection:
+        Base.metadata.clear()
     engine.dispose()
 
 
