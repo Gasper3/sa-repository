@@ -22,5 +22,6 @@ class Article(Base):
     __tablename__ = 'articles'
 
     title = Column(String(255))
+    group = Column(String(255), nullable=True)
 
     comments = relationship('Comment', back_populates='article')
