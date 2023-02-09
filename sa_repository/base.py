@@ -1,6 +1,6 @@
 import typing as t
 
-from sqlalchemy import Select, select, ScalarResult
+from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
 
 __all__ = ['BaseRepository']
@@ -33,7 +33,7 @@ class BaseRepository(t.Generic[T]):
         return True
 
     # read methods
-    def _simple_filter(self, *filter_args) -> Select:
+    def _simple_select(self, *filter_args) -> Select:
         return select(self.MODEL_CLASS).where(*filter_args)
 
     def get(self, *filter_args) -> T:
@@ -42,9 +42,9 @@ class BaseRepository(t.Generic[T]):
         :raises NoResultFound: if nothing was found
         :raises MultipleResultsFound: if found more than one record
         """
-        stmt = self._simple_filter(*filter_args)
+        stmt = self._simple_select(*filter_args)
         return self.session.scalars(stmt).one()
 
-    def find(self, *filter_args) -> ScalarResult[T]:
-        stmt = self._simple_filter(*filter_args)
-        return self.session.scalars(stmt)
+    def find(self, *filter_args) -> t.Sequence[T]:
+        stmt = self._simple_select(*filter_args)
+        return self.session.scalars(stmt).all()
