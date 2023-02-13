@@ -18,3 +18,7 @@ Base class contains some general methods to simplify your work with sqlalchemy m
 var = SomeModelRepository(session).get(YourSAModel.attr == 'some_value')
 ```
 
+If you don't want to create new repository classes, you can use `get_repository_from_model` method
+```python
+repository = BaseRepository.get_repository_from_model(db_session, SomeModel)
+```
