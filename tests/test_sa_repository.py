@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy import exc
 
 from sa_repository import BaseRepository
-from .factories import ArticleFactory
+from .factories import ArticleFactory, CommentFactory
 from .models import Article, Comment
 from .repositories import ArticleRepository
 
@@ -58,3 +58,10 @@ class TestReadMethods:
 
         ids = [article.id for article in result]
         assert all([article.id in ids for article in articles])
+
+    def test_find__relation(self, repository):
+        comment = CommentFactory()
+        ArticleFactory.create_batch(5)
+
+        result = repository.find(Comment.article == comment.article, join=Article.comments)
+        assert len(result) == 1

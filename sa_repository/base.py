@@ -33,18 +33,21 @@ class BaseRepository(t.Generic[T]):
         return True
 
     # read methods
-    def _simple_select(self, *filter_args) -> Select:
-        return select(self.MODEL_CLASS).where(*filter_args)
+    def _simple_select(self, *where, join) -> Select:
+        sel = select(self.MODEL_CLASS).where(*where)
+        if join:
+            sel = sel.join(join)
+        return sel
 
-    def get(self, *filter_args) -> T:
+    def get(self, *where, join=None) -> T:
         """
         :returns: one
         :raises NoResultFound: if nothing was found
         :raises MultipleResultsFound: if found more than one record
         """
-        stmt = self._simple_select(*filter_args)
+        stmt = self._simple_select(*where, join=join)
         return self.session.scalars(stmt).one()
 
-    def find(self, *filter_args) -> t.Sequence[T]:
-        stmt = self._simple_select(*filter_args)
+    def find(self, *where, join=None) -> t.Sequence[T]:
+        stmt = self._simple_select(*where, join=join)
         return self.session.scalars(stmt).all()
