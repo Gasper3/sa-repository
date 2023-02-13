@@ -35,7 +35,7 @@ def db_engine(create_test_db):
 
 
 @pytest.fixture(autouse=True)
-def db_session():
+def db_session(db_engine):
     ses = global_session
     ses.begin_nested()
     yield ses
