@@ -1,3 +1,5 @@
+from random import randint
+
 import pytest
 from sqlalchemy import exc
 
@@ -65,3 +67,26 @@ class TestReadMethods:
 
         result = repository.find(Comment.article == comment.article, join=Article.comments)
         assert len(result) == 1
+
+
+class TestGetRepositoryFromModel:
+    def test_get_repository_from_model(self, db_session):
+        articles_1 = ArticleFactory.create_batch(randint(1, 10), group='group #1')
+        articles_2 = ArticleFactory.create_batch(randint(1, 10), group='group #2')
+
+        repository = BaseRepository.get_repository_from_model(db_session, Article)
+
+        result = repository.find(Article.group == 'group #1')
+        assert len(result) == len(articles_1)
+
+        result = repository.find(Article.group == 'group #2')
+        assert len(result) == len(articles_2)
+
+        comments = CommentFactory.create_batch(randint(1, 10), article=articles_2[0])
+        comment_repository = BaseRepository.get_repository_from_model(db_session, Comment)
+
+        result = comment_repository.find(Comment.article == articles_2[0])
+        assert len(result) == len(comments)
+
+        result = ArticleRepository(db_session).find(Article.group == 'group #1')
+        assert len(result) == len(articles_1)

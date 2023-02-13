@@ -27,6 +27,12 @@ class BaseRepository(t.Generic[T]):
     def __init__(self, session: Session):
         self.session = session
 
+    @classmethod
+    def get_repository_from_model(cls, session, model):
+        new_repo = cls(session)
+        new_repo.MODEL_CLASS = model
+        return new_repo
+
     def _validate_type(self, instances: list):
         if not all([isinstance(instance, self.MODEL_CLASS) for instance in instances]):
             raise ValueError(f'Not all models are instance of class {self.MODEL_CLASS.__name__}')
