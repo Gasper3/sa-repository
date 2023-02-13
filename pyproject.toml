@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "sa-repository"
 version = "0.2.0"
-description = ""
+description = "Class to provide some general methods to simplify work with SQLAlchemy models"
 readme = "README.md"
 authors = ["Gasper3 <trzecik65@gmail.com>"]
 homepage = "https://github.com/Gasper3/sa-repository"
