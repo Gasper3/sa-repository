@@ -6,6 +6,7 @@ from .models import Base
 
 engine = create_engine('postgresql://postgres:postgres@127.0.0.1:5433/sa_repository')
 Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+global_session = Session()
 
 
 @pytest.fixture(scope='session')
@@ -33,15 +34,9 @@ def db_engine(create_test_db):
     engine.dispose()
 
 
-@pytest.fixture(scope='session')
-def setup_database(db_engine):
-    # db.SessionTest.configure(bind=db_engine)
-    yield
-
-
 @pytest.fixture(autouse=True)
-def db_session(setup_database):
-    ses = Session()
+def db_session():
+    ses = global_session
     ses.begin_nested()
     yield ses
     ses.rollback()
