@@ -2,6 +2,7 @@
 name = "sa-repository"
 version = "0.2.0"
 description = ""
+readme = "README.md"
 authors = ["Gasper3 <trzecik65@gmail.com>"]
 homepage = "https://github.com/Gasper3/sa-repository"
 repository = "https://github.com/Gasper3/sa-repository"
