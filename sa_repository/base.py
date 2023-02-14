@@ -1,6 +1,7 @@
 import typing as t
 
 from sqlalchemy import Select, select
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
 __all__ = ['BaseRepository']
@@ -11,8 +12,8 @@ T = t.TypeVar('T')
 class BaseRepository(t.Generic[T]):
     """
     Base repository class
-    Every exception is raised from sqlalchemy.exc
-    Every session operations are flushed NOT committed
+    Exceptions are raised from sqlalchemy.exc
+    Every session operations are flushed
     """
 
     REGISTRY = {}
@@ -33,7 +34,9 @@ class BaseRepository(t.Generic[T]):
         new_repo.MODEL_CLASS = model
         return new_repo
 
-    def _validate_type(self, instances: list):
+    def _validate_type(self, instances: list) -> bool:
+        if len(instances) > self.BATCH_SIZE:
+            raise ValueError('Batch size exceeded')
         if not all([isinstance(instance, self.MODEL_CLASS) for instance in instances]):
             raise ValueError(f'Not all models are instance of class {self.MODEL_CLASS.__name__}')
         return True
@@ -57,3 +60,18 @@ class BaseRepository(t.Generic[T]):
     def find(self, *where, join=None) -> t.Sequence[T]:
         stmt = self._simple_select(*where, join=join)
         return self.session.scalars(stmt).all()
+
+    # write methods
+    def create(self, **kwargs) -> T:
+        with self.session.begin_nested():
+            obj = self.MODEL_CLASS(**kwargs)
+            self.session.add(obj)
+            self.session.flush()
+        return obj
+
+    def create_batch(self, instances) -> list[T]:
+        with self.session.begin_nested():
+            self._validate_type(instances)
+            self.session.add_all(instances)
+            self.session.flush()
+        return instances

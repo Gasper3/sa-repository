@@ -3,6 +3,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from .models import Base
+from .repositories import ArticleRepository
 
 engine = create_engine('postgresql://postgres:postgres@127.0.0.1:5433/sa_repository')
 Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -41,3 +42,8 @@ def db_session(db_engine):
     yield ses
     ses.rollback()
     ses.close()
+
+
+@pytest.fixture()
+def repository(db_session):
+    return ArticleRepository(db_session)

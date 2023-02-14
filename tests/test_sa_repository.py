@@ -25,17 +25,16 @@ def test_validate_type__error(db_session):
 def test_registry():
     class NewRepository(BaseRepository[Article]):
         pass
+
     with pytest.raises(KeyError) as e:
+
         class NewRepository(BaseRepository[Article]):
             pass
+
     assert e.value.args[0] == f'Class {NewRepository.__name__} already exists in registry'
 
 
 class TestReadMethods:
-    @pytest.fixture()
-    def repository(self, db_session):
-        return ArticleRepository(db_session)
-
     def test_get(self, repository):
         article = ArticleFactory()
 
@@ -90,3 +89,26 @@ class TestGetRepositoryFromModel:
 
         result = ArticleRepository(db_session).find(Article.group == 'group #1')
         assert len(result) == len(articles_1)
+
+
+class TestWriteMethods:
+    def test_create(self, repository):
+        article = repository.create(title='title-#1')
+        assert article
+
+        result = repository.get(Article.title == 'title-#1')
+        assert result
+
+    def test_create_batch(self, repository):
+        size = randint(10, BaseRepository.BATCH_SIZE)
+        repository.create_batch([Article(title=f'title#{i}', group='batch') for i in range(size)])
+
+        result = repository.find(Article.group == 'batch')
+        assert len(result) == size
+
+    def test_create_batch__size_exceeded(self, repository):
+        with pytest.raises(ValueError) as e:
+            repository.create_batch(
+                [Article(title=f'title#{i}', group='batch') for i in range(BaseRepository.BATCH_SIZE + 1)]
+            )
+        assert e.value.args[0] == 'Batch size exceeded'
