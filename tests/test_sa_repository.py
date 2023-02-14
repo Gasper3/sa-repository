@@ -68,7 +68,7 @@ class TestReadMethods:
         assert len(result) == 1
 
 
-class TestGetRepositoryFromModel:
+class TestRepository:
     def test_get_repository_from_model(self, db_session):
         articles_1 = ArticleFactory.create_batch(randint(1, 10), group='group #1')
         articles_2 = ArticleFactory.create_batch(randint(1, 10), group='group #2')
@@ -89,6 +89,29 @@ class TestGetRepositoryFromModel:
 
         result = ArticleRepository(db_session).find(Article.group == 'group #1')
         assert len(result) == len(articles_1)
+
+    def test_get_or_create__get(self, repository):
+        article = ArticleFactory()
+
+        obj, created = repository.get_or_create(Article.id == article.id)
+        assert obj
+        assert not created
+
+    def test_get_or_create__multiple_results_error(self, repository):
+        ArticleFactory.create_batch(2, group='group#1')
+
+        with pytest.raises(exc.MultipleResultsFound):
+            repository.get_or_create(Article.group == 'group#1')
+
+    def test_get_or_create__create(self, repository):
+        obj, created = repository.get_or_create(Article.title == 'New title')
+
+        assert created
+        assert obj.title == 'New title'
+
+        result = repository.get(Article.id == obj.id)
+        assert result
+        assert result.title == 'New title'
 
 
 class TestWriteMethods:
@@ -112,3 +135,13 @@ class TestWriteMethods:
                 [Article(title=f'title#{i}', group='batch') for i in range(BaseRepository.BATCH_SIZE + 1)]
             )
         assert e.value.args[0] == 'Batch size exceeded'
+
+    def test_update(self, repository):
+        article = ArticleFactory()
+
+        obj = repository.update(article, title='updated')
+        assert obj.title == 'updated'
+
+        result = repository.get(Article.id == article.id)
+        assert result
+        assert result.title == 'updated'

@@ -41,6 +41,23 @@ class BaseRepository(t.Generic[T]):
             raise ValueError(f'Not all models are instance of class {self.MODEL_CLASS.__name__}')
         return True
 
+    def _flush_obj(self, obj):
+        self.session.add(obj)
+        with self.session.begin_nested():
+            self.session.flush()
+
+    def _create_from_params(self, params):
+        data = {exp.left.name: exp.right.value for exp in params}
+        obj = self.MODEL_CLASS(**data)
+        self._flush_obj(obj)
+        return obj
+
+    def get_or_create(self, *args) -> tuple[T, bool]:
+        try:
+            return self.get(*args), False
+        except NoResultFound:
+            return self._create_from_params(args), True
+
     # read methods
     def _simple_select(self, *where, join) -> Select:
         sel = select(self.MODEL_CLASS).where(*where)
@@ -62,11 +79,9 @@ class BaseRepository(t.Generic[T]):
         return self.session.scalars(stmt).all()
 
     # write methods
-    def create(self, **kwargs) -> T:
-        with self.session.begin_nested():
-            obj = self.MODEL_CLASS(**kwargs)
-            self.session.add(obj)
-            self.session.flush()
+    def create(self, **params) -> T:
+        obj = self.MODEL_CLASS(**params)
+        self._flush_obj(obj)
         return obj
 
     def create_batch(self, instances) -> list[T]:
@@ -75,3 +90,10 @@ class BaseRepository(t.Generic[T]):
             self.session.add_all(instances)
             self.session.flush()
         return instances
+
+    def update(self, instance: T, **params) -> T:
+        self._validate_type([instance])
+        for col, value in params.items():
+            setattr(instance, col, value)
+        self._flush_obj(instance)
+        return instance
