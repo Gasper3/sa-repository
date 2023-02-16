@@ -1,43 +1,39 @@
 import pytest
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, scoped_session
 
 from .models import Base
 from .repositories import ArticleRepository
 
-engine = create_engine('postgresql://postgres:postgres@127.0.0.1:5433/sa_repository')
-Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-global_session = Session()
+DB_URL = 'sqlite:///./test.db'
+
+Session = scoped_session(sessionmaker())
 
 
 @pytest.fixture(scope='session')
-def create_test_db():
-    engine = create_engine('postgresql://postgres:postgres@127.0.0.1:5433/')
-    connection = engine.connect()
-    connection.execution_options(isolation_level="AUTOCOMMIT")
-
-    connection.execute(text('DROP DATABASE IF EXISTS sa_repository;'))
-    connection.execute(text('CREATE DATABASE sa_repository;'))
-
-    yield
-
-
-@pytest.fixture(scope='session')
-def db_engine(create_test_db):
-    engine = create_engine('postgresql://postgres:postgres@127.0.0.1:5433/sa_repository')
+def db_engine():
+    engine = create_engine(DB_URL)
 
     with engine.begin() as connection:
         Base.metadata.create_all(bind=connection)
 
     yield engine
+
     with engine.begin() as connection:
-        Base.metadata.clear()
+        Base.metadata.drop_all(bind=connection)
     engine.dispose()
 
 
+@pytest.fixture(scope='session')
+def prepare_db(db_engine):
+    engine = create_engine(DB_URL)
+    Session.configure(bind=engine)
+    yield
+
+
 @pytest.fixture(autouse=True)
-def db_session(db_engine):
-    ses = global_session
+def db_session(prepare_db):
+    ses = Session()
     ses.begin_nested()
     yield ses
     ses.rollback()

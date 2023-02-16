@@ -1,13 +1,13 @@
 from factory import SubFactory, Sequence
 from factory.alchemy import SQLAlchemyModelFactory, SESSION_PERSISTENCE_FLUSH
 
-from .conftest import global_session
+from .conftest import Session
 from .models import Article, Comment
 
 
 class BaseFactory(SQLAlchemyModelFactory):
     class Meta:
-        sqlalchemy_session = global_session
+        sqlalchemy_session = Session
         sqlalchemy_session_persistence = SESSION_PERSISTENCE_FLUSH
 
 
