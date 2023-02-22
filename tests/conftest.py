@@ -26,8 +26,7 @@ def db_engine():
 
 @pytest.fixture(scope='session')
 def prepare_db(db_engine):
-    engine = create_engine(DB_URL)
-    Session.configure(bind=engine)
+    Session.configure(bind=db_engine)
     yield
 
 

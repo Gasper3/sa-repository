@@ -1,7 +1,7 @@
 from random import randint
 
 import pytest
-from sqlalchemy import exc
+from sqlalchemy import exc, BinaryExpression
 
 from sa_repository import BaseRepository
 from .factories import ArticleFactory, CommentFactory
@@ -93,7 +93,7 @@ class TestRepository:
     def test_get_or_create__get(self, repository):
         article = ArticleFactory()
 
-        obj, created = repository.get_or_create(Article.id == article.id)
+        obj, created = repository.get_or_create(id=article.id)
         assert obj
         assert not created
 
@@ -101,10 +101,10 @@ class TestRepository:
         ArticleFactory.create_batch(2, group='group#1')
 
         with pytest.raises(exc.MultipleResultsFound):
-            repository.get_or_create(Article.group == 'group#1')
+            repository.get_or_create(group='group#1')
 
     def test_get_or_create__create(self, repository):
-        obj, created = repository.get_or_create(Article.title == 'New title')
+        obj, created = repository.get_or_create(title='New title')
 
         assert created
         assert obj.title == 'New title'
@@ -112,6 +112,18 @@ class TestRepository:
         result = repository.get(Article.id == obj.id)
         assert result
         assert result.title == 'New title'
+
+    def test_convert_params_to_model_fields(self, repository):
+        expected_result: list[BinaryExpression] = [Article.title == 'new title', Article.group == 'group #1']
+        result = repository._convert_params_to_model_fields(title='new title', group='group #1')
+
+        assert len(result) == 2
+        assert expected_result[0].compare(result[0])
+        assert expected_result[1].compare(result[1])
+
+    def test_convert_params_to_model_fields__field_not_exist(self, repository):
+        with pytest.raises(AttributeError):
+            repository._convert_params_to_model_fields(bad_field='new title')
 
 
 class TestWriteMethods:

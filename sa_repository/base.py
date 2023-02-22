@@ -34,6 +34,13 @@ class BaseRepository(t.Generic[T]):
         new_repo.MODEL_CLASS = model
         return new_repo
 
+    def _convert_params_to_model_fields(self, **params):
+        result = []
+        for name, value in params.items():
+            field = getattr(self.MODEL_CLASS, name)
+            result.append(field == value)
+        return result
+
     def _validate_type(self, instances: list) -> bool:
         if len(instances) > self.BATCH_SIZE:
             raise ValueError('Batch size exceeded')
@@ -46,17 +53,16 @@ class BaseRepository(t.Generic[T]):
         with self.session.begin_nested():
             self.session.flush()
 
-    def _create_from_params(self, params):
-        data = {exp.left.name: exp.right.value for exp in params}
-        obj = self.MODEL_CLASS(**data)
+    def _create_from_params(self, **params):
+        obj = self.MODEL_CLASS(**params)
         self._flush_obj(obj)
         return obj
 
-    def get_or_create(self, *args) -> tuple[T, bool]:
+    def get_or_create(self, **params) -> tuple[T, bool]:
         try:
-            return self.get(*args), False
+            return self.get(*self._convert_params_to_model_fields(**params)), False
         except NoResultFound:
-            return self._create_from_params(args), True
+            return self._create_from_params(**params), True
 
     # read methods
     def _simple_select(self, *where, join) -> Select:
