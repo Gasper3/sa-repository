@@ -1,5 +1,7 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy.orm import declarative_base, relationship
+from __future__ import annotations
+
+from sqlalchemy import Column, Integer, String, ForeignKey, Table
+from sqlalchemy.orm import declarative_base, relationship, Mapped
 
 
 class MyBase:
@@ -18,6 +20,14 @@ class Comment(Base):
     article = relationship('Article', back_populates='comments')
 
 
+article_to_category = Table(
+    'article_to_category',
+    Base.metadata,
+    Column('article_id', ForeignKey('articles.id'), primary_key=True),
+    Column('category_id', ForeignKey('categories.id'), primary_key=True),
+)
+
+
 class Article(Base):
     __tablename__ = 'articles'
 
@@ -25,3 +35,12 @@ class Article(Base):
     group = Column(String(255), nullable=True)
 
     comments = relationship('Comment', back_populates='article')
+    categories: Mapped[list[Category]] = relationship(secondary=article_to_category, back_populates='articles')
+
+
+class Category(Base):
+    __tablename__ = 'categories'
+
+    name = Column(String(255))
+    articles: Mapped[list[Article]] = relationship(secondary=article_to_category, back_populates='categories')
+
