@@ -2,11 +2,11 @@ import typing as t
 
 from sqlalchemy import Select, select
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, DeclarativeMeta
 
 __all__ = ['BaseRepository']
 
-T = t.TypeVar('T')
+T = t.TypeVar('T', bound=DeclarativeMeta)
 
 
 class BaseRepository(t.Generic[T]):
@@ -53,7 +53,7 @@ class BaseRepository(t.Generic[T]):
         with self.session.begin_nested():
             self.session.flush()
 
-    def _create_from_params(self, **params):
+    def _create_from_params(self, **params) -> T:
         obj = self.MODEL_CLASS(**params)
         self._flush_obj(obj)
         return obj
@@ -90,7 +90,7 @@ class BaseRepository(t.Generic[T]):
         self._flush_obj(obj)
         return obj
 
-    def create_batch(self, instances) -> list[T]:
+    def create_batch(self, instances: list[T]) -> list[T]:
         with self.session.begin_nested():
             self._validate_type(instances)
             self.session.add_all(instances)
