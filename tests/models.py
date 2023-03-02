@@ -31,7 +31,7 @@ article_to_category = Table(
 class Article(Base):
     __tablename__ = 'articles'
 
-    title = Column(String(255))
+    title = Column(String(255), unique=True)
     group = Column(String(255), nullable=True)
 
     comments = relationship('Comment', back_populates='article')

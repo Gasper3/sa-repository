@@ -2,7 +2,7 @@ from factory import SubFactory, Sequence
 from factory.alchemy import SQLAlchemyModelFactory, SESSION_PERSISTENCE_FLUSH
 
 from .conftest import Session
-from .models import Article, Comment
+from .models import Article, Comment, Category
 
 
 class BaseFactory(SQLAlchemyModelFactory):
@@ -24,3 +24,10 @@ class CommentFactory(BaseFactory):
 
     content = Sequence(lambda i: f'Comment #{i}')
     article = SubFactory(ArticleFactory)
+
+
+class CategoryFactory(BaseFactory):
+    class Meta:
+        model = Category
+
+    name = Sequence(lambda i: f'Category #{i}')

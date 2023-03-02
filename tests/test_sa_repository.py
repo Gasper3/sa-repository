@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import exc, BinaryExpression
 
 from sa_repository import BaseRepository
-from .factories import ArticleFactory, CommentFactory
+from .factories import ArticleFactory, CommentFactory, CategoryFactory
 from .models import Article, Comment
 from .repositories import ArticleRepository
 
@@ -46,10 +46,10 @@ class TestReadMethods:
             repository.get(Article.id == 999)
 
     def test_get__multiple_results(self, repository):
-        ArticleFactory.create_batch(2, title='Some title')
+        ArticleFactory.create_batch(2, group='group#1')
 
         with pytest.raises(exc.MultipleResultsFound):
-            repository.get(Article.title == 'Some title')
+            repository.get(Article.group == 'group#1')
 
     def test_find(self, repository):
         articles = ArticleFactory.create_batch(5, group='python')
@@ -66,6 +66,14 @@ class TestReadMethods:
 
         result = repository.find(Comment.article == comment.article, join=Article.comments)
         assert len(result) == 1
+
+    def test_m2m__get_relation(self, repository):
+        category = CategoryFactory()
+        article = ArticleFactory(categories=[category])
+        db_article = repository.get(Article.id == article.id)
+
+        assert db_article
+        assert db_article.categories == [category]
 
 
 class TestRepository:
@@ -93,13 +101,12 @@ class TestRepository:
     def test_get_or_create__get(self, repository):
         article = ArticleFactory()
 
-        obj, created = repository.get_or_create(id=article.id)
+        obj, created = repository.get_or_create(title=article.title)
         assert obj
         assert not created
 
     def test_get_or_create__multiple_results_error(self, repository):
         ArticleFactory.create_batch(2, group='group#1')
-
         with pytest.raises(exc.MultipleResultsFound):
             repository.get_or_create(group='group#1')
 
@@ -112,6 +119,18 @@ class TestRepository:
         result = repository.get(Article.id == obj.id)
         assert result
         assert result.title == 'New title'
+
+    def test_get_or_create__unique_field_error(self, repository):
+        ArticleFactory(title='unique-title')
+        with pytest.raises(exc.IntegrityError):
+            repository.get_or_create(title='unique-title', group='python')
+
+    def test_get_or_create__unique_field(self, repository):
+        article = ArticleFactory(title='unique-title', group='python')
+        obj, created = repository.get_or_create(title='unique-title', group='python')
+
+        assert not created
+        assert article == obj
 
     def test_convert_params_to_model_fields(self, repository):
         expected_result: list[BinaryExpression] = [Article.title == 'new title', Article.group == 'group #1']
@@ -133,6 +152,10 @@ class TestWriteMethods:
 
         result = repository.get(Article.title == 'title-#1')
         assert result
+
+    def test_create__invalid_fields(self, repository):
+        with pytest.raises(TypeError):
+            repository.create(invalid_field='val')
 
     def test_create_batch(self, repository):
         size = randint(10, BaseRepository.BATCH_SIZE)
@@ -157,3 +180,20 @@ class TestWriteMethods:
         result = repository.get(Article.id == article.id)
         assert result
         assert result.title == 'updated'
+
+    def test_m2m__create(self, repository):
+        category = CategoryFactory()
+        article = repository.create(categories=[category])
+
+        db_article = repository.get(Article.id == article.id)
+        assert db_article
+        assert db_article.categories == [category]
+
+    def test_m2m__update(self, repository):
+        article = ArticleFactory(categories=[CategoryFactory()])
+
+        article.categories[0].name = 'updated'
+        repository.update(article)
+
+        db_article = repository.get(Article.id == article.id)
+        assert db_article.categories[0].name == 'updated'
