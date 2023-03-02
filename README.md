@@ -1,7 +1,7 @@
 # SQLAlchemy Repository for models
 ![tests workflow](https://github.com/Gasper3/sa-repository/actions/workflows/actions.yml/badge.svg)
 
-This project contains simple base repository class for your models.  
+This project contains simple Repository pattern for SQLAlchemy models.  
 All you need to do is:
 1. Install this package `python -m pip install sa-repository`
 2. Use it in your project
