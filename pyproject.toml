@@ -10,6 +10,7 @@ repository = "https://github.com/Gasper3/sa-repository"
 [tool.poetry.dependencies]
 python = "^3.10"
 sqlalchemy = "^2.0.2"
+more-itertools = "^9.1.0"
 
 [tool.poetry.group.dev.dependencies]
 coverage = "^7.1.0"
