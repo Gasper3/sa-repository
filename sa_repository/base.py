@@ -1,5 +1,6 @@
 import typing as t
 
+import more_itertools
 from sqlalchemy import Select, select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session, DeclarativeMeta
@@ -41,7 +42,7 @@ class BaseRepository(t.Generic[T]):
             result.append(field == value)
         return result
 
-    def _validate_type(self, instances: list) -> bool:
+    def _validate_type(self, instances: list[T]) -> bool:
         if len(instances) > self.BATCH_SIZE:
             raise ValueError('Batch size exceeded')
         if not all([isinstance(instance, self.MODEL_CLASS) for instance in instances]):
@@ -91,10 +92,18 @@ class BaseRepository(t.Generic[T]):
         return obj
 
     def create_batch(self, instances: list[T]) -> list[T]:
-        with self.session.begin_nested():
-            self._validate_type(instances)
-            self.session.add_all(instances)
-            self.session.flush()
+        for chunk in more_itertools.chunked(instances, self.BATCH_SIZE):
+            with self.session.begin_nested():
+                self._validate_type(chunk)
+                self.session.add_all(chunk)
+                self.session.flush()
+        return instances
+
+    def create_batch_from_dicts(self, data: list[dict]):
+        instances = []
+        for chunk in more_itertools.chunked(data, self.BATCH_SIZE):
+            result = [self._create_from_params(**item) for item in chunk]
+            instances.extend(result)
         return instances
 
     def update(self, instance: T, **params) -> T:

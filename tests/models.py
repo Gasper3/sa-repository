@@ -43,4 +43,3 @@ class Category(Base):
 
     name = Column(String(255))
     articles: Mapped[list[Article]] = relationship(secondary=article_to_category, back_populates='categories')
-

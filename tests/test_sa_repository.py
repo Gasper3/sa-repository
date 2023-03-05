@@ -9,19 +9,6 @@ from .models import Article, Comment
 from .repositories import ArticleRepository
 
 
-def test_validate_type(db_session):
-    repository = ArticleRepository(db_session)
-    repository._validate_type(instances=[Article(), Article()])
-
-
-def test_validate_type__error(db_session):
-    repository = ArticleRepository(db_session)
-
-    with pytest.raises(ValueError) as e:
-        repository._validate_type(instances=[Article(), Comment()])
-    assert e.value.args[0] == f'Not all models are instance of class Article'
-
-
 def test_registry():
     class NewRepository(BaseRepository[Article]):
         pass
@@ -77,6 +64,19 @@ class TestReadMethods:
 
 
 class TestRepository:
+    def test_validate_type(self, repository):
+        repository._validate_type(instances=[Article(), Article()])
+
+    def test_validate_type__error(self, repository):
+        with pytest.raises(ValueError) as e:
+            repository._validate_type(instances=[Article(), Comment()])
+        assert e.value.args[0] == f'Not all models are instance of class Article'
+
+    def test_validate_type__batch_exceeded(self, repository):
+        with pytest.raises(ValueError) as e:
+            repository._validate_type(instances=ArticleFactory.create_batch(BaseRepository.BATCH_SIZE + 1))
+        assert e.value.args[0] == f'Batch size exceeded'
+
     def test_get_repository_from_model(self, db_session):
         articles_1 = ArticleFactory.create_batch(randint(1, 10), group='group #1')
         articles_2 = ArticleFactory.create_batch(randint(1, 10), group='group #2')
@@ -157,19 +157,20 @@ class TestWriteMethods:
         with pytest.raises(TypeError):
             repository.create(invalid_field='val')
 
-    def test_create_batch(self, repository):
-        size = randint(10, BaseRepository.BATCH_SIZE)
+    @pytest.mark.parametrize('size', (randint(10, BaseRepository.BATCH_SIZE), BaseRepository.BATCH_SIZE * 2))
+    def test_create_batch(self, repository, size):
         repository.create_batch([Article(title=f'title#{i}', group='batch') for i in range(size)])
 
         result = repository.find(Article.group == 'batch')
         assert len(result) == size
 
-    def test_create_batch__size_exceeded(self, repository):
-        with pytest.raises(ValueError) as e:
-            repository.create_batch(
-                [Article(title=f'title#{i}', group='batch') for i in range(BaseRepository.BATCH_SIZE + 1)]
-            )
-        assert e.value.args[0] == 'Batch size exceeded'
+    @pytest.mark.parametrize('size', (randint(10, BaseRepository.BATCH_SIZE), BaseRepository.BATCH_SIZE * 2))
+    def test_create_batch_from_dicts(self, repository, size):
+        data = [{'title': f'Article #{i}', 'group': 'batch-dicts'} for i in range(size)]
+        instances = repository.create_batch_from_dicts(data)
+
+        assert len(instances) == size
+        assert all([isinstance(item, repository.MODEL_CLASS) for item in instances])
 
     def test_update(self, repository):
         article = ArticleFactory()
