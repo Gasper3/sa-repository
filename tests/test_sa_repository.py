@@ -21,48 +21,6 @@ def test_registry():
     assert e.value.args[0] == f'Class {NewRepository.__name__} already exists in registry'
 
 
-class TestReadMethods:
-    def test_get(self, repository):
-        article = ArticleFactory()
-
-        result = repository.get(Article.id == article.id)
-        assert result.title == article.title
-
-    def test_get__not_found(self, repository):
-        with pytest.raises(exc.NoResultFound):
-            repository.get(Article.id == 999)
-
-    def test_get__multiple_results(self, repository):
-        ArticleFactory.create_batch(2, group='group#1')
-
-        with pytest.raises(exc.MultipleResultsFound):
-            repository.get(Article.group == 'group#1')
-
-    def test_find(self, repository):
-        articles = ArticleFactory.create_batch(5, group='python')
-
-        result = repository.find(Article.group == 'python')
-        assert len(result) == len(articles)
-
-        ids = [article.id for article in result]
-        assert all([article.id in ids for article in articles])
-
-    def test_find__relation(self, repository):
-        comment = CommentFactory()
-        ArticleFactory.create_batch(5)
-
-        result = repository.find(Comment.article == comment.article, join=Article.comments)
-        assert len(result) == 1
-
-    def test_m2m__get_relation(self, repository):
-        category = CategoryFactory()
-        article = ArticleFactory(categories=[category])
-        db_article = repository.get(Article.id == article.id)
-
-        assert db_article
-        assert db_article.categories == [category]
-
-
 class TestRepository:
     def test_validate_type(self, repository):
         repository._validate_type(instances=[Article(), Article()])
@@ -143,6 +101,48 @@ class TestRepository:
     def test_convert_params_to_model_fields__field_not_exist(self, repository):
         with pytest.raises(AttributeError):
             repository._convert_params_to_model_fields(bad_field='new title')
+
+
+class TestReadMethods:
+    def test_get(self, repository):
+        article = ArticleFactory()
+
+        result = repository.get(Article.id == article.id)
+        assert result.title == article.title
+
+    def test_get__not_found(self, repository):
+        with pytest.raises(exc.NoResultFound):
+            repository.get(Article.id == 999)
+
+    def test_get__multiple_results(self, repository):
+        ArticleFactory.create_batch(2, group='group#1')
+
+        with pytest.raises(exc.MultipleResultsFound):
+            repository.get(Article.group == 'group#1')
+
+    def test_find(self, repository):
+        articles = ArticleFactory.create_batch(5, group='python')
+
+        result = repository.find(Article.group == 'python')
+        assert len(result) == len(articles)
+
+        ids = [article.id for article in result]
+        assert all([article.id in ids for article in articles])
+
+    def test_find__relation(self, repository):
+        comment = CommentFactory()
+        ArticleFactory.create_batch(5)
+
+        result = repository.find(Comment.article == comment.article, join=Article.comments)
+        assert len(result) == 1
+
+    def test_m2m__get_relation(self, repository):
+        category = CategoryFactory()
+        article = ArticleFactory(categories=[category])
+        db_article = repository.get(Article.id == article.id)
+
+        assert db_article
+        assert db_article.categories == [category]
 
 
 class TestWriteMethods:
