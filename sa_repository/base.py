@@ -105,10 +105,3 @@ class BaseRepository(t.Generic[T]):
             result = [self._create_from_params(**item) for item in chunk]
             instances.extend(result)
         return instances
-
-    def update(self, instance: T, **params) -> T:
-        self._validate_type([instance])
-        for col, value in params.items():
-            setattr(instance, col, value)
-        self._flush_obj(instance)
-        return instance

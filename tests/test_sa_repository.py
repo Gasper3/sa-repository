@@ -172,16 +172,6 @@ class TestWriteMethods:
         assert len(instances) == size
         assert all([isinstance(item, repository.MODEL_CLASS) for item in instances])
 
-    def test_update(self, repository):
-        article = ArticleFactory()
-
-        obj = repository.update(article, title='updated')
-        assert obj.title == 'updated'
-
-        result = repository.get(Article.id == article.id)
-        assert result
-        assert result.title == 'updated'
-
     def test_m2m__create(self, repository):
         category = CategoryFactory()
         article = repository.create(categories=[category])
@@ -189,12 +179,3 @@ class TestWriteMethods:
         db_article = repository.get(Article.id == article.id)
         assert db_article
         assert db_article.categories == [category]
-
-    def test_m2m__update(self, repository):
-        article = ArticleFactory(categories=[CategoryFactory()])
-
-        article.categories[0].name = 'updated'
-        repository.update(article)
-
-        db_article = repository.get(Article.id == article.id)
-        assert db_article.categories[0].name == 'updated'
