@@ -1,45 +1,47 @@
 from __future__ import annotations
 
-from sqlalchemy import Column, Integer, String, ForeignKey, Table
-from sqlalchemy.orm import declarative_base, relationship, Mapped
+import typing as t
+
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import relationship, Mapped, mapped_column, DeclarativeBase
 
 
-class MyBase:
-    id = Column(Integer(), primary_key=True)
-
-
-Base = declarative_base(cls=MyBase)
-
-
-class Comment(Base):
-    __tablename__ = 'comments'
-
-    content = Column(String(255))
-
-    article_id = Column(Integer(), ForeignKey("articles.id"))
-    article = relationship('Article', back_populates='comments')
-
-
-article_to_category = Table(
-    'article_to_category',
-    Base.metadata,
-    Column('article_id', ForeignKey('articles.id'), primary_key=True),
-    Column('category_id', ForeignKey('categories.id'), primary_key=True),
-)
+class Base(DeclarativeBase):
+    id: Mapped[int] = mapped_column(primary_key=True)
 
 
 class Article(Base):
     __tablename__ = 'articles'
 
-    title = Column(String(255), unique=True)
-    group = Column(String(255), nullable=True)
+    title: Mapped[str] = mapped_column(unique=True)
+    group: Mapped[t.Optional[str]]
 
-    comments = relationship('Comment', back_populates='article')
-    categories: Mapped[list[Category]] = relationship(secondary=article_to_category, back_populates='articles')
+    comments: Mapped[list[Comment]] = relationship(back_populates='article')
+    categories: Mapped[list[Category]] = relationship(secondary='article_to_category', back_populates='articles')
+
+
+class Comment(Base):
+    __tablename__ = 'comments'
+
+    content: Mapped[str]
+    article_id = mapped_column(ForeignKey('articles.id'))
+
+    article: Mapped[Article] = relationship(back_populates='comments')
 
 
 class Category(Base):
     __tablename__ = 'categories'
 
-    name = Column(String(255))
-    articles: Mapped[list[Article]] = relationship(secondary=article_to_category, back_populates='categories')
+    name: Mapped[str]
+
+    articles: Mapped[list[Article]] = relationship(secondary='article_to_category', back_populates='categories')
+
+
+class ArticleToCategory(Base):
+    __tablename__ = 'article_to_category'
+
+    article_id: Mapped[int] = mapped_column(ForeignKey('articles.id'))
+    category_id: Mapped[int] = mapped_column(ForeignKey('categories.id'))
+
+    article: Mapped[Article] = relationship()
+    category: Mapped[Category] = relationship()
