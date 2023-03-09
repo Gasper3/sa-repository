@@ -103,6 +103,7 @@ class TestRepository:
             repository._convert_params_to_model_fields(bad_field='new title')
 
 
+@pytest.mark.read
 class TestReadMethods:
     def test_get(self, repository):
         article = ArticleFactory()
@@ -133,7 +134,7 @@ class TestReadMethods:
         comment = CommentFactory()
         ArticleFactory.create_batch(5)
 
-        result = repository.find(Comment.article == comment.article, join=Article.comments)
+        result = repository.find(Comment.article == comment.article, joins=[Article.comments])
         assert len(result) == 1
 
     def test_m2m__get_relation(self, repository):
@@ -145,6 +146,7 @@ class TestReadMethods:
         assert db_article.categories == [category]
 
 
+@pytest.mark.write
 class TestWriteMethods:
     def test_create(self, repository):
         article = repository.create(title='title-#1')
@@ -174,7 +176,7 @@ class TestWriteMethods:
 
     def test_m2m__create(self, repository):
         category = CategoryFactory()
-        article = repository.create(categories=[category])
+        article = repository.create(categories=[category], title='Some title')
 
         db_article = repository.get(Article.id == article.id)
         assert db_article
