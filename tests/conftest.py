@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 from .models import Base
-from .repositories import ArticleRepository
+from .repositories import ArticleRepository, CommentRepository
 
 DB_URL = 'sqlite:///./test.db'
 
@@ -42,3 +42,8 @@ def db_session(prepare_db):
 @pytest.fixture()
 def repository(db_session):
     return ArticleRepository(db_session)
+
+
+@pytest.fixture()
+def c_repository(db_session):
+    return CommentRepository(db_session)
