@@ -9,16 +9,13 @@ from .models import Article, Comment
 from .repositories import ArticleRepository
 
 
-def test_registry():
-    class NewRepository(BaseRepository[Article]):
-        pass
-
+def test_registry(repository):
     with pytest.raises(KeyError) as e:
 
         class NewRepository(BaseRepository[Article]):
-            pass
+            MODEL_CLASS = Article
 
-    assert e.value.args[0] == f'Class {NewRepository.__name__} already exists in registry'
+    assert e.value.args[0] == f'Repository for model Article already exists in registry'
 
 
 class TestRepository:
@@ -55,6 +52,10 @@ class TestRepository:
 
         result = ArticleRepository(db_session).find(Article.group == 'group #1')
         assert len(result) == len(articles_1)
+
+    def test_get_repository_from_model__existing(self, db_session, repository):
+        rep = BaseRepository.get_repository_from_model(db_session, Article)
+        assert isinstance(rep, ArticleRepository)
 
     def test_get_or_create__get(self, repository):
         article = ArticleFactory()
@@ -136,6 +137,12 @@ class TestReadMethods:
 
         result = repository.find(Comment.article == comment.article, joins=[Article.comments])
         assert len(result) == 1
+
+    def test_find__order(self, repository):
+        articles = ArticleFactory.create_batch(5, group='order')
+
+        result = repository.find(Article.group == 'order', order_by=Article.title.desc())
+        assert result[0].title == articles[-1].title
 
     def test_m2m__get_relation(self, repository):
         category = CategoryFactory()

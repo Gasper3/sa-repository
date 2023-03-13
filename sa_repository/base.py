@@ -1,7 +1,7 @@
 import typing as t
 
 import more_itertools
-from sqlalchemy import Select, select
+import sqlalchemy as sa
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session, DeclarativeMeta
 
@@ -22,15 +22,18 @@ class BaseRepository(t.Generic[T]):
     BATCH_SIZE = 1000
 
     def __init_subclass__(cls, **kwargs):
-        if cls.__name__ in BaseRepository.REGISTRY:
-            raise KeyError(f'Class {cls.__name__} already exists in registry')
-        BaseRepository.REGISTRY[cls.__name__] = cls
+        super().__init_subclass__(**kwargs)
+        if cls.MODEL_CLASS.__name__ in BaseRepository.REGISTRY:
+            raise KeyError(f'Repository for model {cls.MODEL_CLASS.__name__} already exists in registry')
+        BaseRepository.REGISTRY[cls.MODEL_CLASS.__name__] = cls
 
     def __init__(self, session: Session):
         self.session = session
 
     @classmethod
     def get_repository_from_model(cls, session, model):
+        if model.__name__ in BaseRepository.REGISTRY:
+            return BaseRepository.REGISTRY[model.__name__](session)
         new_repo = cls(session)
         new_repo.MODEL_CLASS = model
         return new_repo
@@ -54,35 +57,32 @@ class BaseRepository(t.Generic[T]):
         with self.session.begin_nested():
             self.session.flush()
 
-    def _create_from_params(self, **params) -> T:
-        obj = self.MODEL_CLASS(**params)
-        self._flush_obj(obj)
-        return obj
-
     def get_or_create(self, **params) -> tuple[T, bool]:
         try:
             return self.get(*self._convert_params_to_model_fields(**params)), False
         except NoResultFound:
-            return self._create_from_params(**params), True
+            return self.create(**params), True
+
+    def get_query(self, *where_args, joins: list = None, select: t.Iterable = None, order_by=None) -> sa.Select:
+        query = sa.select(select if select else self.MODEL_CLASS).where(*where_args).order_by(order_by)
+
+        if joins:
+            for join in joins:
+                query = query.join(*join) if isinstance(join, tuple) else query.join(join)
+        return query
 
     # read methods
-    def _simple_select(self, *where, join) -> Select:
-        sel = select(self.MODEL_CLASS).where(*where)
-        if join:
-            sel = sel.join(join)
-        return sel
-
-    def get(self, *where, join=None) -> T:
+    def get(self, *where, joins: list = None) -> T:
         """
         :returns: one
         :raises NoResultFound: if nothing was found
         :raises MultipleResultsFound: if found more than one record
         """
-        stmt = self._simple_select(*where, join=join)
+        stmt = self.get_query(*where, joins=joins)
         return self.session.scalars(stmt).one()
 
-    def find(self, *where, join=None) -> t.Sequence[T]:
-        stmt = self._simple_select(*where, join=join)
+    def find(self, *where, joins: list = None, order_by=None) -> t.Sequence[T]:
+        stmt = self.get_query(*where, joins=joins, order_by=order_by)
         return self.session.scalars(stmt).all()
 
     # write methods
@@ -99,9 +99,9 @@ class BaseRepository(t.Generic[T]):
                 self.session.flush()
         return instances
 
-    def create_batch_from_dicts(self, data: list[dict]):
+    def create_batch_from_dicts(self, data: list[dict]) -> list[T]:
         instances = []
         for chunk in more_itertools.chunked(data, self.BATCH_SIZE):
-            result = [self._create_from_params(**item) for item in chunk]
+            result = [self.create(**item) for item in chunk]
             instances.extend(result)
         return instances
