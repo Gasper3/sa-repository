@@ -5,8 +5,8 @@ from sqlalchemy import exc, BinaryExpression
 
 from sa_repository import BaseRepository
 from .factories import ArticleFactory, CommentFactory, CategoryFactory
-from .models import Article, Comment
-from .repositories import ArticleRepository
+from .models import Article, Comment, Category
+from .repositories import ArticleRepository, CommentRepository
 
 
 def test_registry(repository):
@@ -37,6 +37,7 @@ class TestRepository:
         articles_2 = ArticleFactory.create_batch(randint(1, 10), group='group #2')
 
         repository = BaseRepository.get_repository_from_model(db_session, Article)
+        assert repository.__class__ == ArticleRepository
 
         result = repository.find(Article.group == 'group #1')
         assert len(result) == len(articles_1)
@@ -46,6 +47,7 @@ class TestRepository:
 
         comments = CommentFactory.create_batch(randint(1, 10), article=articles_2[0])
         comment_repository = BaseRepository.get_repository_from_model(db_session, Comment)
+        assert comment_repository.__class__ == CommentRepository
 
         result = comment_repository.find(Comment.article == articles_2[0])
         assert len(result) == len(comments)
@@ -53,9 +55,9 @@ class TestRepository:
         result = ArticleRepository(db_session).find(Article.group == 'group #1')
         assert len(result) == len(articles_1)
 
-    def test_get_repository_from_model__existing(self, db_session, repository):
-        rep = BaseRepository.get_repository_from_model(db_session, Article)
-        assert isinstance(rep, ArticleRepository)
+    def test_get_repository_from_model__new_repository(self, db_session):
+        rep = BaseRepository.get_repository_from_model(db_session, Category)
+        assert rep.__class__ == BaseRepository
 
     def test_get_or_create__get(self, repository):
         article = ArticleFactory()
