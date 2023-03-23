@@ -2,12 +2,13 @@ import typing as t
 
 import more_itertools
 import sqlalchemy as sa
+from sqlalchemy import ColumnElement
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy.orm import Session, DeclarativeMeta
+from sqlalchemy.orm import Session, DeclarativeBase
 
 __all__ = ['BaseRepository']
 
-T = t.TypeVar('T', bound=DeclarativeMeta)
+T = t.TypeVar('T', bound=DeclarativeBase)
 
 
 class BaseRepository(t.Generic[T]):
@@ -17,9 +18,9 @@ class BaseRepository(t.Generic[T]):
     Every session operations are flushed
     """
 
-    REGISTRY = {}
+    REGISTRY: dict[str, t.Type['BaseRepository[T]']] = {}
     MODEL_CLASS: t.Type[T]
-    BATCH_SIZE = 1000
+    BATCH_SIZE: int = 1000
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -31,18 +32,18 @@ class BaseRepository(t.Generic[T]):
         self.session = session
 
     @classmethod
-    def get_repository_from_model(cls, session, model):
+    def get_repository_from_model(cls, session, model: t.Type[T]) -> 'BaseRepository[T]':
         if model.__name__ in BaseRepository.REGISTRY:
             return BaseRepository.REGISTRY[model.__name__](session)
         new_repo = cls(session)
         new_repo.MODEL_CLASS = model
         return new_repo
 
-    def _convert_params_to_model_fields(self, **params):
+    def _convert_params_to_model_fields(self, **params) -> list[ColumnElement]:
         result = []
         for name, value in params.items():
             field = getattr(self.MODEL_CLASS, name)
-            result.append(field == value)
+            result.append(t.cast(ColumnElement, field == value))
         return result
 
     def _validate_type(self, instances: list[T]) -> bool:
@@ -63,8 +64,14 @@ class BaseRepository(t.Generic[T]):
         except NoResultFound:
             return self.create(**params), True
 
-    def get_query(self, *where_args, joins: list = None, select: t.Iterable = None, order_by=None) -> sa.Select:
-        query = sa.select(select if select else self.MODEL_CLASS).where(*where_args).order_by(order_by)
+    def get_query(
+        self,
+        *where_args: ColumnElement,
+        joins: list | None = None,
+        select: t.Tuple[ColumnElement] | None = None,
+        order_by=None,
+    ) -> sa.Select:
+        query = sa.select(*select if select else self.MODEL_CLASS).where(*where_args).order_by(order_by)
 
         if joins:
             for join in joins:
@@ -72,7 +79,7 @@ class BaseRepository(t.Generic[T]):
         return query
 
     # read methods
-    def get(self, *where, joins: list = None) -> T:
+    def get(self, *where: ColumnElement, joins: list | None = None) -> T:
         """
         :returns: one
         :raises NoResultFound: if nothing was found
@@ -81,7 +88,7 @@ class BaseRepository(t.Generic[T]):
         stmt = self.get_query(*where, joins=joins)
         return self.session.scalars(stmt).one()
 
-    def find(self, *where, joins: list = None, order_by=None) -> t.Sequence[T]:
+    def find(self, *where, joins: list | None = None, order_by=None) -> t.Sequence[T]:
         stmt = self.get_query(*where, joins=joins, order_by=order_by)
         return self.session.scalars(stmt).all()
 
