@@ -71,7 +71,7 @@ class BaseRepository(t.Generic[T]):
         select: t.Tuple[ColumnElement] | None = None,
         order_by=None,
     ) -> sa.Select:
-        query = sa.select(*select if select else self.MODEL_CLASS).where(*where_args).order_by(order_by)
+        query = sa.select(select if select else self.MODEL_CLASS).where(*where_args).order_by(order_by)
 
         if joins:
             for join in joins:
