@@ -88,6 +88,10 @@ class BaseRepository(t.Generic[T]):
         stmt = self.get_query(*where, joins=joins)
         return self.session.scalars(stmt).one()
 
+    def get_or_none(self, *where: ColumnElement, joins: list | None = None) -> T | None:
+        stmt = self.get_query(*where, joins=joins)
+        return self.session.scalars(stmt).one_or_none()
+
     def find(self, *where, joins: list | None = None, order_by=None) -> t.Sequence[T]:
         stmt = self.get_query(*where, joins=joins, order_by=order_by)
         return self.session.scalars(stmt).all()

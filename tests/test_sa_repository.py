@@ -124,6 +124,18 @@ class TestReadMethods:
         with pytest.raises(exc.MultipleResultsFound):
             repository.get(Article.group == 'group#1')
 
+    def test_get_or_none(self, repository):
+        article = ArticleFactory()
+
+        db_article = repository.get_or_none(Article.title == article.title)
+        assert db_article == article
+
+    def test_get_or_none__miltiple_results(self, repository):
+        ArticleFactory.create_batch(2, group='group#1')
+
+        with pytest.raises(exc.MultipleResultsFound):
+            repository.get_or_none(Article.group == 'group#1')
+
     def test_find(self, repository):
         articles = ArticleFactory.create_batch(5, group='python')
 
