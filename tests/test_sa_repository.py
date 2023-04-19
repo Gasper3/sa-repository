@@ -1,4 +1,5 @@
 from random import randint
+import more_itertools
 
 import pytest
 from sqlalchemy import exc, BinaryExpression
@@ -156,7 +157,7 @@ class TestReadMethods:
         articles = ArticleFactory.create_batch(5, group='order')
 
         result = repository.find(Article.group == 'order', order_by=Article.title.desc())
-        assert result[0].title == articles[-1].title
+        assert result[0].title == more_itertools.last(articles).title
 
     def test_m2m__get_relation(self, repository):
         category = CategoryFactory()
@@ -165,6 +166,16 @@ class TestReadMethods:
 
         assert db_article
         assert db_article.categories == [category]
+
+    def test_get_query__select_columns(self, repository: ArticleRepository):
+        article = ArticleFactory(group='group-1')
+        ArticleFactory(group='group-2')
+
+        query = repository.get_query(Article.id == article.id, select=(Article.id, Article.group))
+        result = repository.session.execute(query).all()
+
+        assert len(result) == 1
+        assert result[0] == (1, 'group-1')
 
 
 @pytest.mark.write
