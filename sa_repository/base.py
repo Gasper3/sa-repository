@@ -4,7 +4,7 @@ import more_itertools
 import sqlalchemy as sa
 from sqlalchemy import ColumnElement
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy.orm import Session, DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, Session, joinedload
 
 __all__ = ['BaseRepository']
 
@@ -70,6 +70,7 @@ class BaseRepository(t.Generic[T]):
         joins: list | None = None,
         select: t.Tuple[ColumnElement] | None = None,
         order_by=None,
+        joined_loads: tuple | None = None,
     ) -> sa.Select:
         query = sa.select(*select) if select else sa.select(self.MODEL_CLASS)
         query = query.where(*where_args).order_by(order_by)
@@ -77,25 +78,32 @@ class BaseRepository(t.Generic[T]):
         if joins:
             for join in joins:
                 query = query.join(*join) if isinstance(join, tuple) else query.join(join)
+
+        if joined_loads:
+            query = query.options(*[joinedload(j) for j in joined_loads])
         return query
 
     # read methods
-    def get(self, *where: ColumnElement, joins: list | None = None) -> T:
+    def get(self, *where: ColumnElement, joins: list | None = None, joined_loads: tuple | None = None) -> T:
         """
         :returns: one
         :raises NoResultFound: if nothing was found
         :raises MultipleResultsFound: if found more than one record
         """
-        stmt = self.get_query(*where, joins=joins)
-        return self.session.scalars(stmt).one()
+        stmt = self.get_query(*where, joins=joins, joined_loads=joined_loads)
+        return self.session.scalars(stmt).unique().one()
 
-    def get_or_none(self, *where: ColumnElement, joins: list | None = None) -> T | None:
-        stmt = self.get_query(*where, joins=joins)
-        return self.session.scalars(stmt).one_or_none()
+    def get_or_none(
+        self, *where: ColumnElement, joins: list | None = None, joined_loads: tuple | None = None
+    ) -> T | None:
+        stmt = self.get_query(*where, joins=joins, joined_loads=joined_loads)
+        return self.session.scalars(stmt).unique().one_or_none()
 
-    def find(self, *where, joins: list | None = None, order_by=None) -> t.Sequence[T]:
-        stmt = self.get_query(*where, joins=joins, order_by=order_by)
-        return self.session.scalars(stmt).all()
+    def find(
+        self, *where, joins: list | None = None, order_by=None, joined_loads: tuple | None = None
+    ) -> t.Sequence[T]:
+        stmt = self.get_query(*where, joins=joins, order_by=order_by, joined_loads=joined_loads)
+        return self.session.scalars(stmt).unique().all()
 
     # write methods
     def create(self, **params) -> T:
