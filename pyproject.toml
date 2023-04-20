@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sa-repository"
-version = "1.0.0"
+version = "1.0.1"
 description = "Repository pattern for SQLAlchemy models"
 readme = "README.md"
 authors = ["Gasper3 <trzecik65@gmail.com>"]
