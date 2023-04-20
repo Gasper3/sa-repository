@@ -1,12 +1,14 @@
 from random import randint
-import more_itertools
 
+import more_itertools
 import pytest
-from sqlalchemy import exc, BinaryExpression
+from sqlalchemy import BinaryExpression, exc
 
 from sa_repository import BaseRepository
-from .factories import ArticleFactory, CommentFactory, CategoryFactory
-from .models import Article, Comment, Category
+
+from .conftest import count_queries
+from .factories import ArticleFactory, CategoryFactory, CommentFactory
+from .models import Article, Category, Comment
 from .repositories import ArticleRepository, CommentRepository
 
 
@@ -176,6 +178,34 @@ class TestReadMethods:
 
         assert len(result) == 1
         assert result[0] == (1, 'group-1')
+
+    @pytest.mark.parametrize('func', ('get', 'get_or_none', 'find'))
+    def test_joined_loads(self, repository: ArticleRepository, db_session, func):
+        article = ArticleFactory()
+        comments = CommentFactory.create_batch(randint(1, 10), article=article)
+
+        function = getattr(repository, func)
+
+        with count_queries(db_session.connection()) as queries:
+            db_article = function(Article.id == article.id, joined_loads=(Article.comments,))
+            if func == 'find':
+                db_article = more_itertools.first(db_article)
+            assert len(db_article.comments) == len(comments)
+        assert len(queries) == 1
+
+    @pytest.mark.parametrize('func', ('get', 'get_or_none', 'find'))
+    def test_joined_loads__without_joined(self, repository: ArticleRepository, db_session, func):
+        article = ArticleFactory()
+        comments = CommentFactory.create_batch(randint(1, 10), article=article)
+
+        function = getattr(repository, func)
+
+        with count_queries(db_session.connection()) as queries:
+            db_article = function(Article.id == article.id)
+            if func == 'find':
+                db_article = more_itertools.first(db_article)
+            assert len(db_article.comments) == len(comments)
+        assert len(queries) == 2
 
 
 @pytest.mark.write

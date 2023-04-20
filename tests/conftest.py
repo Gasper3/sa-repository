@@ -1,6 +1,8 @@
+import contextlib
+
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy import create_engine, event
+from sqlalchemy.orm import scoped_session, sessionmaker
 
 from .models import Base
 from .repositories import ArticleRepository, CommentRepository
@@ -47,3 +49,16 @@ def repository(db_session):
 @pytest.fixture()
 def c_repository(db_session):
     return CommentRepository(db_session)
+
+
+@contextlib.contextmanager
+def count_queries(conn):
+    queries = []
+    def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+        queries.append(statement)
+
+    event.listen(conn, "before_cursor_execute", before_cursor_execute)
+    try:
+        yield queries
+    finally:
+        event.remove(conn, "before_cursor_execute", before_cursor_execute)
