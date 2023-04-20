@@ -6,6 +6,13 @@ readme = "README.md"
 authors = ["Gasper3 <trzecik65@gmail.com>"]
 homepage = "https://github.com/Gasper3/sa-repository"
 repository = "https://github.com/Gasper3/sa-repository"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Topic :: Database",
+]
+license = "MIT"
+keywords = ["sqlalchemy", "repository-pattern", "orm", "repository"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
