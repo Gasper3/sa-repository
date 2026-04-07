@@ -1,47 +1,66 @@
-[tool.poetry]
+[project]
 name = "sa-repository"
 version = "1.1.1"
 description = "Repository pattern for SQLAlchemy models"
 readme = "README.md"
-authors = ["Gasper3 <trzecik65@gmail.com>"]
-homepage = "https://github.com/Gasper3/sa-repository"
-repository = "https://github.com/Gasper3/sa-repository"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [
+    {name = "Gasper3", email = "trzecik65@gmail.com"},
+]
+keywords = ["sqlalchemy", "repository-pattern", "orm", "repository"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Topic :: Database",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
-license = "MIT"
-keywords = ["sqlalchemy", "repository-pattern", "orm", "repository"]
+dependencies = [
+    "sqlalchemy>=2.0.2",
+    "more-itertools>=9.1.0",
+]
 
-[tool.poetry.dependencies]
-python = "^3.10"
-sqlalchemy = "^2.0.2"
-more-itertools = "^9.1.0"
+[project.urls]
+Homepage = "https://github.com/Gasper3/sa-repository"
+Repository = "https://github.com/Gasper3/sa-repository"
 
-[tool.poetry.group.dev.dependencies]
-coverage = "^7.1.0"
-pytest = "*"
-black = "^23.1.0"
-factory-boy = "^3.2.1"
-psycopg2 = "^2.9.5"
-mypy = "^1.1.1"
-pytest-cov = "^4.0.0"
+[dependency-groups]
+dev = [
+    "coverage>=7.1.0",
+    "pytest",
+    "ruff>=0.9.0",
+    "factory-boy>=3.2.1",
+    "psycopg2>=2.9.5",
+    "mypy>=1.1.1",
+    "pytest-cov>=4.0.0",
+]
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.black]
+[tool.ruff]
 line-length = 120
-skip-string-normalization = true
+target-version = "py311"
+
+[tool.ruff.format]
+quote-style = "preserve"
 skip-magic-trailing-comma = true
-extend-exclude = '''
-(
-  \.idea
-  | \.(mypy|pytest)_cache
-)
-'''
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B"]
+
+[tool.ruff.lint.isort]
+split-on-trailing-comma = false
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 markers = [

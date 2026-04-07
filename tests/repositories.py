@@ -1,4 +1,5 @@
 from sa_repository import BaseRepository
+
 from .models import Article, Comment
 
 
