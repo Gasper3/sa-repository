@@ -1,6 +1,6 @@
 [project]
 name = "sa-repository"
-version = "1.1.1"
+version = "1.2.0"
 description = "Repository pattern for SQLAlchemy models"
 readme = "README.md"
 requires-python = ">=3.11"
