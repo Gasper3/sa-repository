@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import typing as t
-
 from sqlalchemy import ForeignKey
-from sqlalchemy.orm import relationship, Mapped, mapped_column, DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -14,7 +12,7 @@ class Article(Base):
     __tablename__ = 'articles'
 
     title: Mapped[str] = mapped_column(unique=True)
-    group: Mapped[t.Optional[str]]
+    group: Mapped[str | None]
 
     comments: Mapped[list[Comment]] = relationship(back_populates='article')
     categories: Mapped[list[Category]] = relationship(secondary='article_to_category', back_populates='articles')

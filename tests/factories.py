@@ -1,8 +1,8 @@
-from factory import SubFactory, Sequence
-from factory.alchemy import SQLAlchemyModelFactory, SESSION_PERSISTENCE_FLUSH
+from factory import Sequence, SubFactory
+from factory.alchemy import SESSION_PERSISTENCE_FLUSH, SQLAlchemyModelFactory
 
 from .conftest import Session
-from .models import Article, Comment, Category
+from .models import Article, Category, Comment
 
 
 class BaseFactory(SQLAlchemyModelFactory):

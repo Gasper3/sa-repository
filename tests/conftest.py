@@ -54,6 +54,7 @@ def c_repository(db_session):
 @contextlib.contextmanager
 def count_queries(conn):
     queries = []
+
     def before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
         queries.append(statement)
 

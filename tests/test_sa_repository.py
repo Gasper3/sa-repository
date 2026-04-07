@@ -18,7 +18,7 @@ def test_registry(repository):
         class NewRepository(BaseRepository[Article]):
             MODEL_CLASS = Article
 
-    assert e.value.args[0] == f'Repository for model Article already exists in registry'
+    assert e.value.args[0] == 'Repository for model Article already exists in registry'
 
 
 class TestRepository:
@@ -28,12 +28,12 @@ class TestRepository:
     def test_validate_type__error(self, repository):
         with pytest.raises(ValueError) as e:
             repository._validate_type(instances=[Article(), Comment()])
-        assert e.value.args[0] == f'Not all models are instance of class Article'
+        assert e.value.args[0] == 'Not all models are instance of class Article'
 
     def test_validate_type__batch_exceeded(self, repository):
         with pytest.raises(ValueError) as e:
             repository._validate_type(instances=ArticleFactory.create_batch(BaseRepository.BATCH_SIZE + 1))
-        assert e.value.args[0] == f'Batch size exceeded'
+        assert e.value.args[0] == 'Batch size exceeded'
 
     def test_get_repository_from_model(self, db_session):
         articles_1 = ArticleFactory.create_batch(randint(1, 10), group='group #1')

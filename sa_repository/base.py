@@ -1,4 +1,6 @@
-import typing as t
+from __future__ import annotations
+
+from typing import Generic, Sequence, TypeVar, cast
 
 import more_itertools
 import sqlalchemy as sa
@@ -8,33 +10,33 @@ from sqlalchemy.orm import DeclarativeBase, Session, joinedload
 
 __all__ = ['BaseRepository']
 
-T = t.TypeVar('T', bound=DeclarativeBase)
+T = TypeVar('T', bound=DeclarativeBase)
 
 
-class BaseRepository(t.Generic[T]):
+class BaseRepository(Generic[T]):
     """
     Base repository class
     Exceptions are raised from sqlalchemy.exc
     Every session operations are flushed
     """
 
-    REGISTRY: dict[str, t.Type['BaseRepository[T]']] = {}
-    MODEL_CLASS: t.Type[T]
+    REGISTRY: dict[str, type[BaseRepository[T]]] = {}
+    MODEL_CLASS: type[T]
     BATCH_SIZE: int = 1000
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
-        if cls.MODEL_CLASS.__name__ in BaseRepository.REGISTRY:
+        if cls.MODEL_CLASS.__name__ in cls.REGISTRY:
             raise KeyError(f'Repository for model {cls.MODEL_CLASS.__name__} already exists in registry')
-        BaseRepository.REGISTRY[cls.MODEL_CLASS.__name__] = cls
+        cls.REGISTRY[cls.MODEL_CLASS.__name__] = cls
 
     def __init__(self, session: Session):
         self.session = session
 
     @classmethod
-    def get_repository_from_model(cls, session, model: t.Type[T]) -> 'BaseRepository[T]':
-        if model.__name__ in BaseRepository.REGISTRY:
-            return BaseRepository.REGISTRY[model.__name__](session)
+    def get_repository_from_model(cls, session, model: type[T]) -> BaseRepository[T]:
+        if model.__name__ in cls.REGISTRY:
+            return cls.REGISTRY[model.__name__](session)
         new_repo = cls(session)
         new_repo.MODEL_CLASS = model
         return new_repo
@@ -43,7 +45,7 @@ class BaseRepository(t.Generic[T]):
         result = []
         for name, value in params.items():
             field = getattr(self.MODEL_CLASS, name)
-            result.append(t.cast(ColumnElement, field == value))
+            result.append(cast(ColumnElement, field == value))
         return result
 
     def _validate_type(self, instances: list[T]) -> bool:
@@ -68,7 +70,7 @@ class BaseRepository(t.Generic[T]):
         self,
         *where_args: ColumnElement,
         joins: list | None = None,
-        select: t.Tuple[ColumnElement] | None = None,
+        select: tuple[ColumnElement] | None = None,
         order_by=None,
         joined_loads: tuple | None = None,
     ) -> sa.Select:
@@ -99,9 +101,7 @@ class BaseRepository(t.Generic[T]):
         stmt = self.get_query(*where, joins=joins, joined_loads=joined_loads)
         return self.session.scalars(stmt).unique().one_or_none()
 
-    def find(
-        self, *where, joins: list | None = None, order_by=None, joined_loads: tuple | None = None
-    ) -> t.Sequence[T]:
+    def find(self, *where, joins: list | None = None, order_by=None, joined_loads: tuple | None = None) -> Sequence[T]:
         stmt = self.get_query(*where, joins=joins, order_by=order_by, joined_loads=joined_loads)
         return self.session.scalars(stmt).unique().all()
 
