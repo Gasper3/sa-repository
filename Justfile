@@ -40,6 +40,12 @@ test:
 test-cov:
     uv run pytest --cov=sa_repository tests/
 
+[group('test')]
+[doc('Generate HTML coverage report and open it')]
+cov-html:
+    uv run pytest --cov=sa_repository --cov-report=html tests/
+    open htmlcov/index.html
+
 # CI
 
 [group('ci')]
