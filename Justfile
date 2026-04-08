@@ -27,6 +27,10 @@ format-check:
 [doc('Run mypy type checker')]
 typecheck:
     uv run mypy sa_repository/
+    
+[group('quality')]
+[doc('Run all fixes')]
+run-fixes: format lint-fix
 
 # Testing
 

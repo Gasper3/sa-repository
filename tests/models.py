@@ -22,7 +22,7 @@ class Comment(Base):
     __tablename__ = 'comments'
 
     content: Mapped[str]
-    article_id = mapped_column(ForeignKey('articles.id'))
+    article_id: Mapped[int] = mapped_column(ForeignKey('articles.id'))
 
     article: Mapped[Article] = relationship(back_populates='comments')
 

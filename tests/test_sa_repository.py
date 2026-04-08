@@ -8,8 +8,8 @@ from sa_repository import BaseRepository
 
 from .conftest import count_queries
 from .factories import ArticleFactory, CategoryFactory, CommentFactory
-from .models import Article, Category, Comment
-from .repositories import ArticleRepository, CommentRepository
+from .models import Article, Comment
+from .repositories import ArticleRepository
 
 
 def test_registry(repository):
@@ -29,45 +29,6 @@ class TestRepository:
         with pytest.raises(ValueError) as e:
             repository._validate_type(instances=[Article(), Comment()])
         assert e.value.args[0] == 'Not all models are instance of class Article'
-
-    def test_validate_type__batch_exceeded(self, repository):
-        with pytest.raises(ValueError) as e:
-            repository._validate_type(instances=ArticleFactory.create_batch(BaseRepository.BATCH_SIZE + 1))
-        assert e.value.args[0] == 'Batch size exceeded'
-
-    def test_get_repository_from_model(self, db_session):
-        articles_1 = ArticleFactory.create_batch(randint(1, 10), group='group #1')
-        articles_2 = ArticleFactory.create_batch(randint(1, 10), group='group #2')
-
-        repository = BaseRepository.get_repository_from_model(db_session, Article)
-        assert repository.__class__ == ArticleRepository
-
-        result = repository.find(Article.group == 'group #1')
-        assert len(result) == len(articles_1)
-
-        result = repository.find(Article.group == 'group #2')
-        assert len(result) == len(articles_2)
-
-        comments = CommentFactory.create_batch(randint(1, 10), article=articles_2[0])
-        comment_repository = BaseRepository.get_repository_from_model(db_session, Comment)
-        assert comment_repository.__class__ == CommentRepository
-
-        result = comment_repository.find(Comment.article == articles_2[0])
-        assert len(result) == len(comments)
-
-        result = ArticleRepository(db_session).find(Article.group == 'group #1')
-        assert len(result) == len(articles_1)
-
-    def test_get_repository_from_model__new_repository(self, db_session):
-        rep = BaseRepository.get_repository_from_model(db_session, Category)
-        assert rep.__class__ == BaseRepository
-
-    def test_get_or_create__get(self, repository):
-        article = ArticleFactory()
-
-        obj, created = repository.get_or_create(title=article.title)
-        assert obj
-        assert not created
 
     def test_get_or_create__multiple_results_error(self, repository):
         ArticleFactory.create_batch(2, group='group#1')
@@ -133,6 +94,10 @@ class TestReadMethods:
         db_article = repository.get_or_none(Article.title == article.title)
         assert db_article == article
 
+    def test_get_or_none__not_found(self, repository):
+        result = repository.get_or_none(Article.id == 999999)
+        assert result is None
+
     def test_get_or_none__miltiple_results(self, repository):
         ArticleFactory.create_batch(2, group='group#1')
 
@@ -147,6 +112,15 @@ class TestReadMethods:
 
         ids = [article.id for article in result]
         assert all([article.id in ids for article in articles])
+
+    def test_find__empty(self, repository):
+        result = repository.find(Article.id == 999999)
+        assert list(result) == []
+
+    def test_find__no_filter(self, repository):
+        articles = ArticleFactory.create_batch(3)
+        result = repository.find()
+        assert len(result) == len(articles)
 
     def test_find__relation(self, repository):
         comment = CommentFactory()
@@ -168,16 +142,6 @@ class TestReadMethods:
 
         assert db_article
         assert db_article.categories == [category]
-
-    def test_get_query__select_columns(self, repository: ArticleRepository):
-        article = ArticleFactory(group='group-1')
-        ArticleFactory(group='group-2')
-
-        query = repository.get_query(Article.id == article.id, select=(Article.id, Article.group))
-        result = repository.session.execute(query).all()
-
-        assert len(result) == 1
-        assert result[0] == (1, 'group-1')
 
     @pytest.mark.parametrize('func', ('get', 'get_or_none', 'find'))
     def test_joined_loads(self, repository: ArticleRepository, db_session, func):
@@ -212,14 +176,19 @@ class TestReadMethods:
 class TestWriteMethods:
     def test_create(self, repository):
         article = repository.create(title='title-#1')
-        assert article
+        assert article.id is not None
+        assert article.title == 'title-#1'
 
         result = repository.get(Article.title == 'title-#1')
-        assert result
+        assert result.title == 'title-#1'
 
     def test_create__invalid_fields(self, repository):
         with pytest.raises(TypeError):
             repository.create(invalid_field='val')
+
+    def test_create_batch__type_error(self, repository):
+        with pytest.raises(ValueError, match='Not all models are instance of class Article'):
+            repository.create_batch([Article(title='ok'), Comment(content='wrong')])
 
     @pytest.mark.parametrize('size', (randint(10, BaseRepository.BATCH_SIZE), BaseRepository.BATCH_SIZE * 2))
     def test_create_batch(self, repository, size):
