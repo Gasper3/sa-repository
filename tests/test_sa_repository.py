@@ -12,14 +12,6 @@ from .models import Article, Comment
 from .repositories import ArticleRepository
 
 
-def test_registry(repository):
-    with pytest.raises(KeyError) as e:
-
-        class NewRepository(BaseRepository[Article]):
-            MODEL_CLASS = Article
-
-    assert e.value.args[0] == 'Repository for model Article already exists in registry'
-
 
 class TestRepository:
     def test_validate_type(self, repository):
@@ -203,7 +195,7 @@ class TestWriteMethods:
         instances = repository.create_batch_from_dicts(data)
 
         assert len(instances) == size
-        assert all([isinstance(item, repository.MODEL_CLASS) for item in instances])
+        assert all([isinstance(item, repository.model_class) for item in instances])
 
     def test_m2m__create(self, repository):
         category = CategoryFactory()
