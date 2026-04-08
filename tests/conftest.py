@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.orm import scoped_session, sessionmaker
 
 from .models import Base
-from .repositories import ArticleRepository, CommentRepository
+from .repositories import ArticleRepository
 
 DB_URL = 'sqlite:///./test.db'
 
@@ -44,11 +44,6 @@ def db_session(prepare_db):
 @pytest.fixture()
 def repository(db_session):
     return ArticleRepository(db_session)
-
-
-@pytest.fixture()
-def c_repository(db_session):
-    return CommentRepository(db_session)
 
 
 @contextlib.contextmanager
