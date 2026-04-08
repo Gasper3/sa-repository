@@ -12,7 +12,6 @@ from .models import Article, Comment
 from .repositories import ArticleRepository
 
 
-
 class TestRepository:
     def test_validate_type(self, repository):
         repository._validate_type(instances=[Article(), Article()])
